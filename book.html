@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Paper Trails — Book Journey</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="nav"><a class="brand" href="index.html"><span class="brand-mark">⌁</span><span>Paper Trails</span></a><nav><a href="index.html#release">Release a book</a></nav></header>
+<main class="section">
+  <div id="content" class="journey-card"></div>
+</main>
+<script>
+const id = new URLSearchParams(location.search).get("id");
+const books = JSON.parse(localStorage.getItem("paperTrailsBooks") || "[]");
+const book = books.find(b => b.id === id);
+const el = document.getElementById("content");
+if (!book) {
+  el.innerHTML = "<h2>Book not found</h2><p>This prototype book exists only in the browser where it was created. A real shared database is our next build step.</p><a class='button primary' href='index.html#release'>Release a book</a>";
+} else {
+  el.innerHTML = `
+    <p class="eyebrow">PAPER TRAIL ${book.id}</p>
+    <div class="journey-top"><div><h2>${esc(book.title)}</h2><p>${esc(book.author)}</p></div><span class="passport">CURRENTLY TRAVELING</span></div>
+    <div class="journey-stats"><div><strong>${book.journey.length}</strong><span>reader entries</span></div><div><strong>0</strong><span>miles logged</span></div><div><strong>${new Set(book.journey.map(j=>j.location)).size}</strong><span>places</span></div></div>
+    <div class="timeline">${book.journey.map(j => `<div><span class="dot"></span><div><strong>${esc(j.location)}</strong><small>${new Date(j.date).toLocaleDateString()}</small><p>“${esc(j.message)}”</p></div></div>`).join("")}</div>
+    <p class="small-note">Prototype mode: the journey is stored locally. Next we connect every passport to a shared online database so anyone scanning the QR can see the same trail.</p>
+  `;
+}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]))}
+</script>
+</body>
+</html>

@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Paper Trails — Every Book Has a Journey</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="nav">
+    <a class="brand" href="#top" aria-label="Paper Trails home">
+      <span class="brand-mark">⌁</span>
+      <span>Paper Trails</span>
+    </a>
+    <nav>
+      <a href="#how">How it works</a>
+      <a href="#journey">Journey</a>
+      <a href="#portland">Portland 100</a>
+      <a class="nav-cta" href="#release">Release a book</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">PORTLAND • COMMUNITY LIBRARY PROJECT</p>
+        <h1>Every book has a journey.</h1>
+        <p class="lede">Give a favorite book a second life. Release it into the world, follow where it travels, and discover the people it reaches.</p>
+        <div class="actions">
+          <a class="button primary" href="#release">Release a book</a>
+          <a class="button secondary" href="#journey">See a journey</a>
+        </div>
+        <p class="small-note">No shelves required. No followers. Just stories.</p>
+      </div>
+      <div class="hero-art">
+        <div class="map-lines"></div>
+        <div class="book">
+          <div class="cover-label">PAPER<br>TRAILS</div>
+          <div class="book-title">A book<br>in motion.</div>
+        </div>
+        <div class="trail trail-a">PORTLAND</div>
+        <div class="trail trail-b">SEATTLE</div>
+        <div class="trail trail-c">BEND</div>
+      </div>
+    </section>
+
+    <section id="how" class="section paper">
+      <div class="section-heading">
+        <p class="eyebrow">HOW IT WORKS</p>
+        <h2>Release it. Share it. Follow it.</h2>
+      </div>
+      <div class="steps">
+        <article><span>01</span><h3>Release</h3><p>Choose a favorite book and create its Paper Trail.</p></article>
+        <article><span>02</span><h3>Share</h3><p>Pass it to a friend, a book club, a Little Free Library, or a stranger.</p></article>
+        <article><span>03</span><h3>Follow</h3><p>Readers add their chapter so the book's story keeps growing.</p></article>
+      </div>
+    </section>
+
+    <section id="journey" class="section">
+      <div class="journey-card">
+        <div class="journey-top">
+          <div>
+            <p class="eyebrow">A BOOK CURRENTLY TRAVELING</p>
+            <h2>The Overstory</h2>
+            <p>Richard Powers</p>
+          </div>
+          <span class="passport">PT-000001</span>
+        </div>
+        <div class="journey-stats"><div><strong>7</strong><span>readers</span></div><div><strong>842</strong><span>miles</span></div><div><strong>3</strong><span>places</span></div></div>
+        <div class="timeline">
+          <div><span class="dot"></span><div><strong>Portland, OR</strong><small>August 2026</small><p>“This book changed how I see forests.”</p></div></div>
+          <div><span class="dot"></span><div><strong>Seattle, WA</strong><small>September 2026</small><p>“I read this during a season of change.”</p></div></div>
+          <div><span class="dot"></span><div><strong>Bend, OR</strong><small>October 2026</small><p>“Passing it forward to my book club.”</p></div></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="release" class="section release">
+      <div class="form-copy">
+        <p class="eyebrow">START A TRAIL</p>
+        <h2>Give a favorite book a second life.</h2>
+        <p>Tell us where the journey begins and leave a note for the reader who finds it next.</p>
+      </div>
+      <form id="releaseForm" class="release-form">
+        <label>Book title<input id="title" required placeholder="The Overstory"></label>
+        <label>Author<input id="author" required placeholder="Richard Powers"></label>
+        <label>Starting city<input id="location" required placeholder="Portland, Oregon"></label>
+        <label>Your note<textarea id="message" required placeholder="Why are you sharing this book?"></textarea></label>
+        <button class="button primary" type="submit">Create Book Passport</button>
+        <p class="form-help">Your prototype record stays in this browser for now. We'll connect a real database next.</p>
+      </form>
+    </section>
+
+    <section id="portland" class="portland">
+      <p class="eyebrow">THE PORTLAND 100</p>
+      <h2>100 books. 100 journeys. One living library.</h2>
+      <p>We're starting small: Portland readers, book clubs, neighborhood shelves, and beloved books that deserve another reader.</p>
+      <div class="counter"><strong id="bookCount">0</strong><span>books released in this prototype</span></div>
+    </section>
+  </main>
+
+  <footer>
+    <div><strong>Paper Trails</strong><span>Every Book Has a Journey.</span></div>
+    <span>Built for Portland readers.</span>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
