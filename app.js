@@ -1,73 +1,274 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+import {
+  getFirestore,
+  collection,
+  addDoc,
+  getDocs,
+  query,
+  orderBy,
+  limit,
+  serverTimestamp
+} from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+import { firebaseConfig } from "./firebase-config.js";
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
 const form = document.getElementById("releaseForm");
 const countEl = document.getElementById("bookCount");
 
-function getBooks() {
-  return JSON.parse(localStorage.getItem("paperTrailsBooks") || "[]");
+const esc = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[char]));
+
+
+async function getNextPaperTrailId() {
+  const booksRef = collection(db, "books");
+
+  const latest = await getDocs(
+    query(
+      booksRef,
+      orderBy("sequence", "desc"),
+      limit(1)
+    )
+  );
+
+  const nextSequence = latest.empty
+    ? 1
+    : Number(latest.docs[0].data().sequence || 0) + 1;
+
+  return {
+    id: `PT-${String(nextSequence).padStart(6, "0")}`,
+    sequence: nextSequence
+  };
 }
-function saveBooks(books) {
-  localStorage.setItem("paperTrailsBooks", JSON.stringify(books));
+
+
+async function updateBookCount() {
+  const snapshot = await getDocs(collection(db, "books"));
+
+  if (countEl) {
+    countEl.textContent = snapshot.size;
+  }
 }
-function nextId() {
-  const books = getBooks();
-  return `PT-${String(books.length + 1).padStart(6, "0")}`;
-}
-function updateCount() {
-  countEl.textContent = getBooks().length;
-}
+
+
 function showPassport(book) {
+
   const modal = document.createElement("div");
+
   modal.className = "modal";
+
   modal.innerHTML = `
     <div class="passport-card">
-      <button class="close" aria-label="Close">×</button>
-      <p class="eyebrow">YOUR BOOK PASSPORT IS READY</p>
-      <h2>${escapeHtml(book.title)}</h2>
-      <p>${escapeHtml(book.author)}</p>
+
+      <button class="close" aria-label="Close">
+        ×
+      </button>
+
+      <p class="eyebrow">
+        YOUR BOOK PASSPORT IS READY
+      </p>
+
+      <h2>${esc(book.title)}</h2>
+
+      <p>
+        ${esc(book.author)}
+      </p>
+
       <div class="passport-grid">
+
         <div>
-          <p><strong>Passport No.</strong><br>${book.id}</p>
-          <p><strong>Issued in</strong><br>${escapeHtml(book.location)}</p>
-          <p><strong>Journey started</strong><br>${new Date(book.created).toLocaleDateString()}</p>
-          <p><strong>First note</strong><br><em>“${escapeHtml(book.message)}”</em></p>
-          <button class="button primary" id="printPassport">Print Passport</button>
+
+          <p>
+            <strong>Passport No.</strong><br>
+            ${book.id}
+          </p>
+
+          <p>
+            <strong>Journey begins</strong><br>
+            ${esc(book.location)}
+          </p>
+
+          <p>
+            <strong>Your note</strong><br>
+            <em>“${esc(book.message)}”</em>
+          </p>
+
+          <button
+            class="button primary"
+            id="printPassport">
+            Print Passport
+          </button>
+
         </div>
-        <div class="qr"><div id="qrcode"></div></div>
+
+        <div class="qr">
+          <div id="qrcode"></div>
+        </div>
+
       </div>
-    </div>`;
+
+      <p class="small-note">
+        Scan this code to follow the book's journey.
+      </p>
+
+    </div>
+  `;
+
   document.body.appendChild(modal);
-  new QRCode(document.getElementById("qrcode"), {
-    text: `${location.origin}/book.html?id=${encodeURIComponent(book.id)}`,
-    width: 160,
-    height: 160
-  });
-  modal.querySelector(".close").onclick = () => modal.remove();
-  modal.addEventListener("click", e => { if (e.target === modal) modal.remove(); });
-  modal.querySelector("#printPassport").onclick = () => window.print();
-}
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-}
-form.addEventListener("submit", e => {
-  e.preventDefault();
-  const book = {
-    id: nextId(),
-    title: document.getElementById("title").value.trim(),
-    author: document.getElementById("author").value.trim(),
-    location: document.getElementById("location").value.trim(),
-    message: document.getElementById("message").value.trim(),
-    created: new Date().toISOString(),
-    journey: []
+
+
+  const journeyUrl =
+    `${window.location.origin}/book.html?id=${encodeURIComponent(book.id)}`;
+
+
+  new QRCode(
+    document.getElementById("qrcode"),
+    {
+      text: journeyUrl,
+      width: 160,
+      height: 160
+    }
+  );
+
+
+  modal.querySelector(".close").onclick = () => {
+    modal.remove();
   };
-  book.journey.push({
-    location: book.location,
-    message: book.message,
-    date: book.created
+
+
+  modal.addEventListener("click", (event) => {
+    if (event.target === modal) {
+      modal.remove();
+    }
   });
-  const books = getBooks();
-  books.push(book);
-  saveBooks(books);
-  form.reset();
-  updateCount();
-  showPassport(book);
+
+
+  modal.querySelector("#printPassport").onclick = () => {
+    window.print();
+  };
+}
+
+
+form.addEventListener("submit", async (event) => {
+
+  event.preventDefault();
+
+  const button =
+    form.querySelector('button[type="submit"]');
+
+  button.disabled = true;
+
+  button.textContent =
+    "Creating your Paper Trail…";
+
+
+  try {
+
+    const {
+      id,
+      sequence
+    } = await getNextPaperTrailId();
+
+
+    const book = {
+
+      id,
+
+      sequence,
+
+      title:
+        document.getElementById("title").value.trim(),
+
+      author:
+        document.getElementById("author").value.trim(),
+
+      location:
+        document.getElementById("location").value.trim(),
+
+      message:
+        document.getElementById("message").value.trim(),
+
+      status:
+        "traveling",
+
+      createdAt:
+        serverTimestamp()
+    };
+
+
+    // Create the permanent book record.
+    await addDoc(
+      collection(db, "books"),
+      book
+    );
+
+
+    // Create the first chapter of the journey.
+    await addDoc(
+      collection(
+        db,
+        "books",
+        id,
+        "chapters"
+      ),
+      {
+        location: book.location,
+
+        message: book.message,
+
+        createdAt:
+          serverTimestamp()
+      }
+    );
+
+
+    form.reset();
+
+    await updateBookCount();
+
+    showPassport(book);
+
+
+  } catch (error) {
+
+    console.error(
+      "Paper Trails Firebase error:",
+      error
+    );
+
+    alert(
+      "We couldn't create the Paper Trail yet. " +
+      "Please check that Firestore is enabled and the rules are published."
+    );
+
+  } finally {
+
+    button.disabled = false;
+
+    button.textContent =
+      "Create Book Passport";
+  }
+
 });
-updateCount();
+
+
+updateBookCount().catch((error) => {
+
+  console.error(
+    "Could not load book count:",
+    error
+  );
+
+  if (countEl) {
+    countEl.textContent = "—";
+  }
+
+});
