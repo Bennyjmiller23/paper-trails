@@ -7,292 +7,84 @@ import {
   query,
   orderBy,
   doc,
-  getDoc
+  getDoc,
+  addDoc,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
 import { firebaseConfig } from "./firebase-config.js";
 
-
 const app = initializeApp(firebaseConfig);
-
 const db = getFirestore(app);
 
+const params = new URLSearchParams(window.location.search);
+const bookId = params.get("id");
 
-const params =
-  new URLSearchParams(window.location.search);
+const content = document.getElementById("content");
 
-const bookId =
-  params.get("id");
-
-const content =
-  document.getElementById("content");
-
-
-function escapeHtml(value) {
-
-  return String(value ?? "")
-    .replace(/[&<>"']/g, (character) => ({
-      "&": "&amp;",
-      "<": "&lt;",
-      ">": "&gt;",
-      '"': "&quot;",
-      "'": "&#039;"
-    }[character]));
-
-}
+const escapeHtml = (value) =>
+  String(value ?? "").replace(/[&<>"']/g, (character) => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;"
+  }[character]));
 
 
 async function loadBook() {
 
   if (!bookId) {
-
-    content.innerHTML = `
-      <p class="eyebrow">
-        PAPER TRAILS
-      </p>
-
-      <h2>
-        No book was specified.
-      </h2>
-
-      <p>
-        Scan a Paper Trails QR code
-        or enter a Paper Trails ID.
-      </p>
-
-      <a
-        class="button primary"
-        href="index.html#journey"
-      >
-        Find a book
-      </a>
-    `;
-
+    showError(
+      "No book was specified.",
+      "Scan a Paper Trails QR code or enter a Paper Trails ID."
+    );
     return;
   }
 
-
   try {
 
-    const bookReference =
-      doc(
-        db,
-        "books",
-        bookId
-      );
+    const bookReference = doc(
+      db,
+      "books",
+      bookId
+    );
 
-
-    const bookSnapshot =
-      await getDoc(bookReference);
-
+    const bookSnapshot = await getDoc(bookReference);
 
     if (!bookSnapshot.exists()) {
-
-      content.innerHTML = `
-        <p class="eyebrow">
-          PAPER TRAILS
-        </p>
-
-        <h2>
-          We couldn't find that book.
-        </h2>
-
-        <p>
-          Check the Paper Trails number
-          and try again.
-        </p>
-
-        <a
-          class="button primary"
-          href="index.html#release"
-        >
-          Release a book
-        </a>
-      `;
-
+      showError(
+        "We couldn't find that book.",
+        "Check the Paper Trails number and try again."
+      );
       return;
     }
 
+    const book = bookSnapshot.data();
 
-    const book =
-      bookSnapshot.data();
+    const chaptersReference = collection(
+      db,
+      "books",
+      bookId,
+      "chapters"
+    );
 
-
-    const chaptersReference =
-      collection(
-        db,
-        "books",
-        bookId,
-        "chapters"
-      );
-
-
-    const chaptersQuery =
-      query(
-        chaptersReference,
-        orderBy(
-          "createdAt",
-          "asc"
-        )
-      );
-
+    const chaptersQuery = query(
+      chaptersReference,
+      orderBy("createdAt", "asc")
+    );
 
     const chaptersSnapshot =
       await getDocs(chaptersQuery);
 
+    const chapters = chaptersSnapshot.docs.map(
+      (chapter) => ({
+        id: chapter.id,
+        ...chapter.data()
+      })
+    );
 
-    const chapters =
-      chaptersSnapshot.docs.map(
-        (chapter) => chapter.data()
-      );
-
-
-    const places =
-      new Set(
-        chapters
-          .map(
-            (chapter) =>
-              chapter.location
-          )
-          .filter(Boolean)
-      );
-
-
-    content.innerHTML = `
-
-      <p class="eyebrow">
-        PAPER TRAIL ${escapeHtml(book.id)}
-      </p>
-
-
-      <div class="journey-top">
-
-        <div>
-
-          <h2>
-            ${escapeHtml(book.title)}
-          </h2>
-
-          <p>
-            ${escapeHtml(book.author)}
-          </p>
-
-        </div>
-
-
-        <span class="passport">
-          TRAVELING
-        </span>
-
-      </div>
-
-
-      <div class="journey-stats">
-
-        <div>
-
-          <strong>
-            ${chapters.length}
-          </strong>
-
-          <span>
-            reader entries
-          </span>
-
-        </div>
-
-
-        <div>
-
-          <strong>
-            ${places.size}
-          </strong>
-
-          <span>
-            places
-          </span>
-
-        </div>
-
-
-        <div>
-
-          <strong>
-            ${escapeHtml(book.location)}
-          </strong>
-
-          <span>
-            started here
-          </span>
-
-        </div>
-
-      </div>
-
-
-      <div class="timeline">
-
-        ${chapters.map(
-          (chapter, index) => `
-
-          <div>
-
-            <span class="dot"></span>
-
-            <div>
-
-              <strong>
-                Chapter ${index + 1}
-              </strong>
-
-              <small>
-                ${escapeHtml(
-                  chapter.location ||
-                  "Somewhere"
-                )}
-              </small>
-
-              <p>
-                “${escapeHtml(
-                  chapter.message
-                )}”
-              </p>
-
-            </div>
-
-          </div>
-
-        `
-        ).join("")}
-
-      </div>
-
-
-      <div style="margin-top:40px">
-
-        <p class="eyebrow">
-          THE JOURNEY CONTINUES
-        </p>
-
-        <h3>
-          Where will this book go next?
-        </h3>
-
-        <p>
-          The next reader can add their
-          chapter to this Paper Trail.
-        </p>
-
-        <button
-          class="button primary"
-          disabled
-        >
-          Add Your Chapter — Coming Next
-        </button>
-
-      </div>
-
-    `;
+    renderJourney(book, chapters);
 
   } catch (error) {
 
@@ -301,33 +93,395 @@ async function loadBook() {
       error
     );
 
+    showError(
+      "Something went wrong.",
+      "We couldn't load this book's journey right now."
+    );
+  }
+}
 
-    content.innerHTML = `
+
+function renderJourney(book, chapters) {
+
+  const places = new Set(
+    chapters
+      .map((chapter) => chapter.location)
+      .filter(Boolean)
+  );
+
+  content.innerHTML = `
+
+    <p class="eyebrow">
+      PAPER TRAIL ${escapeHtml(book.id)}
+    </p>
+
+    <div class="journey-top">
+
+      <div>
+
+        <h2>
+          ${escapeHtml(book.title)}
+        </h2>
+
+        <p>
+          ${escapeHtml(book.author)}
+        </p>
+
+      </div>
+
+      <span class="passport">
+        TRAVELING
+      </span>
+
+    </div>
+
+    <div class="journey-stats">
+
+      <div>
+        <strong>
+          ${chapters.length}
+        </strong>
+
+        <span>
+          reader entries
+        </span>
+      </div>
+
+      <div>
+        <strong>
+          ${places.size}
+        </strong>
+
+        <span>
+          places
+        </span>
+      </div>
+
+      <div>
+        <strong>
+          ${escapeHtml(book.location)}
+        </strong>
+
+        <span>
+          started here
+        </span>
+      </div>
+
+    </div>
+
+    <div class="timeline">
+
+      ${
+        chapters.length
+          ? chapters.map(
+              (chapter, index) => `
+
+                <div>
+
+                  <span class="dot"></span>
+
+                  <div>
+
+                    <strong>
+                      Chapter ${index + 1}
+                    </strong>
+
+                    <small>
+                      ${escapeHtml(
+                        chapter.location ||
+                        "Somewhere"
+                      )}
+                    </small>
+
+                    ${
+                      chapter.name
+                        ? `<small>by ${escapeHtml(
+                            chapter.name
+                          )}</small>`
+                        : `<small>Anonymous reader</small>`
+                    }
+
+                    <p>
+                      “${escapeHtml(
+                        chapter.message
+                      )}”
+                    </p>
+
+                  </div>
+
+                </div>
+
+              `
+            ).join("")
+          : `
+              <p>
+                This book is waiting for its first chapter.
+              </p>
+            `
+      }
+
+    </div>
+
+    <div class="chapter-action">
 
       <p class="eyebrow">
-        PAPER TRAILS
+        YOU FOUND THIS BOOK
       </p>
 
-      <h2>
-        Something went wrong.
-      </h2>
+      <h3>
+        Add your chapter.
+      </h3>
 
       <p>
-        We couldn't load this book's
-        journey right now.
+        Tell the next reader where this book has been
+        and what it meant to you.
       </p>
 
-      <a
+      <button
         class="button primary"
-        href="index.html"
+        id="addChapterButton"
       >
-        Return to Paper Trails
-      </a>
+        Add Your Chapter
+      </button>
 
-    `;
+    </div>
 
+    <div
+      id="chapterFormContainer"
+      style="display:none"
+    ></div>
+
+  `;
+
+  document
+    .getElementById("addChapterButton")
+    .addEventListener(
+      "click",
+      showChapterForm
+    );
+}
+
+
+function showChapterForm() {
+
+  const container =
+    document.getElementById(
+      "chapterFormContainer"
+    );
+
+  container.style.display = "block";
+
+  container.innerHTML = `
+
+    <div class="chapter-form">
+
+      <p class="eyebrow">
+        YOUR CHAPTER
+      </p>
+
+      <h3>
+        Where did this book find you?
+      </h3>
+
+      <form id="chapterForm">
+
+        <label>
+
+          Your name
+          <span class="optional">
+            optional
+          </span>
+
+          <input
+            id="readerName"
+            type="text"
+            maxlength="80"
+            placeholder="Leave blank to stay anonymous"
+          >
+
+        </label>
+
+        <label>
+
+          Where are you?
+          <input
+            id="readerLocation"
+            type="text"
+            maxlength="120"
+            required
+            placeholder="Portland, Oregon"
+          >
+
+        </label>
+
+        <label>
+
+          Your message
+
+          <textarea
+            id="readerMessage"
+            maxlength="2000"
+            required
+            placeholder="What would you like the next reader to know?"
+          ></textarea>
+
+        </label>
+
+        <div class="chapter-form-actions">
+
+          <button
+            type="submit"
+            class="button primary"
+          >
+            Add My Chapter
+          </button>
+
+          <button
+            type="button"
+            class="button secondary"
+            id="cancelChapter"
+          >
+            Cancel
+          </button>
+
+        </div>
+
+        <p class="form-help">
+          Your name is optional. The location and message
+          become part of this book's permanent journey.
+        </p>
+
+      </form>
+
+    </div>
+
+  `;
+
+  document
+    .getElementById("cancelChapter")
+    .addEventListener(
+      "click",
+      () => {
+        container.style.display = "none";
+        container.innerHTML = "";
+      }
+    );
+
+  document
+    .getElementById("chapterForm")
+    .addEventListener(
+      "submit",
+      saveChapter
+    );
+
+  container.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+}
+
+
+async function saveChapter(event) {
+
+  event.preventDefault();
+
+  const form = event.target;
+
+  const submitButton =
+    form.querySelector(
+      'button[type="submit"]'
+    );
+
+  submitButton.disabled = true;
+
+  submitButton.textContent =
+    "Adding your chapter…";
+
+  const name =
+    document
+      .getElementById("readerName")
+      .value
+      .trim();
+
+  const location =
+    document
+      .getElementById("readerLocation")
+      .value
+      .trim();
+
+  const message =
+    document
+      .getElementById("readerMessage")
+      .value
+      .trim();
+
+  try {
+
+    await addDoc(
+      collection(
+        db,
+        "books",
+        bookId,
+        "chapters"
+      ),
+      {
+        name: name || null,
+
+        location,
+
+        message,
+
+        createdAt:
+          serverTimestamp()
+      }
+    );
+
+    await loadBook();
+
+  } catch (error) {
+
+    console.error(
+      "Could not add chapter:",
+      error
+    );
+
+    alert(
+      "We couldn't add your chapter. " +
+      "Please try again."
+    );
+
+    submitButton.disabled = false;
+
+    submitButton.textContent =
+      "Add My Chapter";
   }
+}
 
+
+function showError(title, message) {
+
+  content.innerHTML = `
+
+    <p class="eyebrow">
+      PAPER TRAILS
+    </p>
+
+    <h2>
+      ${escapeHtml(title)}
+    </h2>
+
+    <p>
+      ${escapeHtml(message)}
+    </p>
+
+    <a
+      class="button primary"
+      href="index.html#journey"
+    >
+      Find a book
+    </a>
+
+  `;
 }
 
 
