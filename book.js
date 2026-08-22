@@ -6,6 +6,8 @@ import {
   getDocs,
   query,
   orderBy,
+  where,
+  limit,
   doc,
   getDoc,
   addDoc,
@@ -44,13 +46,25 @@ async function loadBook() {
 
   try {
 
-    const bookReference = doc(
-      db,
-      "books",
-      bookId
-    );
+  const booksQuery = query(
+  collection(db, "books"),
+  where("id", "==", bookId),
+  limit(1)
+);
 
-    const bookSnapshot = await getDoc(bookReference);
+const booksSnapshot = await getDocs(booksQuery);
+
+if (booksSnapshot.empty) {
+  showError(
+    "We couldn't find that book.",
+    "Check the Paper Trails number and try again."
+  );
+  return;
+}
+
+const bookDocument = booksSnapshot.docs[0];
+
+const book = bookDocument.data();
 
     if (!bookSnapshot.exists()) {
       showError(
