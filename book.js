@@ -5,11 +5,9 @@ import {
   collection,
   getDocs,
   query,
-  orderBy,
   where,
   limit,
-  doc,
-  getDoc,
+  orderBy,
   addDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
@@ -23,6 +21,7 @@ const params = new URLSearchParams(window.location.search);
 const bookId = params.get("id");
 
 const content = document.getElementById("content");
+
 
 const escapeHtml = (value) =>
   String(value ?? "").replace(/[&<>"']/g, (character) => ({
@@ -46,27 +45,16 @@ async function loadBook() {
 
   try {
 
-  const booksQuery = query(
-  collection(db, "books"),
-  where("id", "==", bookId),
-  limit(1)
-);
+    // Find the book using its Paper Trails ID field.
+    const booksQuery = query(
+      collection(db, "books"),
+      where("id", "==", bookId),
+      limit(1)
+    );
 
-const booksSnapshot = await getDocs(booksQuery);
+    const booksSnapshot = await getDocs(booksQuery);
 
-if (booksSnapshot.empty) {
-  showError(
-    "We couldn't find that book.",
-    "Check the Paper Trails number and try again."
-  );
-  return;
-}
-
-const bookDocument = booksSnapshot.docs[0];
-
-const book = bookDocument.data();
-
-    if (!bookSnapshot.exists()) {
+    if (booksSnapshot.empty) {
       showError(
         "We couldn't find that book.",
         "Check the Paper Trails number and try again."
@@ -74,12 +62,18 @@ const book = bookDocument.data();
       return;
     }
 
-    const book = bookSnapshot.data();
+    const bookDocument = booksSnapshot.docs[0];
+    const book = bookDocument.data();
+
+    // IMPORTANT:
+    // Use the actual Firebase document ID when looking
+    // for chapters.
+    const firebaseBookId = bookDocument.id;
 
     const chaptersReference = collection(
       db,
       "books",
-      bookId,
+      firebaseBookId,
       "chapters"
     );
 
@@ -318,6 +312,7 @@ function showChapterForm() {
         <label>
 
           Where are you?
+
           <input
             id="readerLocation"
             type="text"
@@ -431,22 +426,34 @@ async function saveChapter(event) {
 
   try {
 
+    const booksQuery = query(
+      collection(db, "books"),
+      where("id", "==", bookId),
+      limit(1)
+    );
+
+    const booksSnapshot =
+      await getDocs(booksQuery);
+
+    if (booksSnapshot.empty) {
+      throw new Error("Book not found.");
+    }
+
+    const firebaseBookId =
+      booksSnapshot.docs[0].id;
+
     await addDoc(
       collection(
         db,
         "books",
-        bookId,
+        firebaseBookId,
         "chapters"
       ),
       {
         name: name || null,
-
         location,
-
         message,
-
-        createdAt:
-          serverTimestamp()
+        createdAt: serverTimestamp()
       }
     );
 
@@ -490,7 +497,7 @@ function showError(title, message) {
 
     <a
       class="button primary"
-      href="index.html#journey"
+      href="index.html"
     >
       Find a book
     </a>
