@@ -7,6 +7,8 @@ import {
   query,
   orderBy,
   limit,
+  doc,
+  setDoc,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
@@ -205,10 +207,10 @@ form.addEventListener("submit", async (event) => {
 
 
     // Create the permanent book record.
-    await addDoc(
-      collection(db, "books"),
-      book
-    );
+    await setDoc(
+  doc(db, "books", id),
+  book
+);
 
 
     // Create the first chapter of the journey.
