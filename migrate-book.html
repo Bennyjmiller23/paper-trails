@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paper Trails Migration</title>
+
+  <style>
+    body {
+      font-family: Georgia, serif;
+      max-width: 700px;
+      margin: 60px auto;
+      padding: 20px;
+      background: #f8f3e8;
+      color: #29251f;
+    }
+
+    .card {
+      background: #fffdf8;
+      border: 1px solid #d8d0c2;
+      padding: 32px;
+      border-radius: 8px;
+    }
+
+    button {
+      padding: 14px 22px;
+      font-size: 16px;
+      cursor: pointer;
+      border: 1px solid #29251f;
+      background: #29251f;
+      color: white;
+      border-radius: 5px;
+    }
+
+    #status {
+      margin-top: 25px;
+      white-space: pre-wrap;
+      line-height: 1.6;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="card">
+
+    <h1>Paper Trails Migration</h1>
+
+    <p>
+      This one-time tool moves PT-000001 and its existing
+      chapters into the permanent Firebase document.
+    </p>
+
+    <button id="migrateButton">
+      Migrate PT-000001
+    </button>
+
+    <div id="status"></div>
+
+  </div>
+
+  <script type="module">
+
+    import { firebaseConfig } from "./firebase-config.js";
+
+    import {
+      initializeApp
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+
+    import {
+      getFirestore,
+      collection,
+      getDocs,
+      doc,
+      setDoc
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const status = document.getElementById("status");
+    const button = document.getElementById("migrateButton");
+
+
+    button.addEventListener("click", async () => {
+
+      button.disabled = true;
+
+      status.textContent = "Starting migration…";
+
+      try {
+
+        /*
+         * Find all books whose Paper Trails ID is PT-000001.
+         */
+        const booksSnapshot =
+          await getDocs(
+            collection(db, "books")
+          );
+
+
+        /*
+         * Find the actual populated book.
+         * We deliberately look for the document
+         * containing the title rather than trusting
+         * Firebase's document order.
+         */
+        const matchingBooks =
+          booksSnapshot.docs.filter(
+            (bookDoc) =>
+              bookDoc.data().id === "PT-000001" &&
+              bookDoc.data().title === "The Overstory"
+          );
+
+
+        if (matchingBooks.length === 0) {
+          throw new Error(
+            "Could not find The Overstory / PT-000001."
+          );
+        }
+
+
+        const sourceDoc = matchingBooks[0];
+
+        const sourceData = sourceDoc.data();
+
+
+        status.textContent =
+          "Found source book:\n" +
+          sourceDoc.id +
+          "\n\nCopying book data…";
+
+
+        /*
+         * This is the permanent document.
+         */
+        const permanentBookRef =
+          doc(db, "books", "PT-000001");
+
+
+        /*
+         * Copy the book into PT-000001.
+         */
+        await setDoc(
+          permanentBookRef,
+          sourceData,
+          { merge: true }
+        );
+
+
+        /*
+         * Find chapters belonging to the old document.
+         */
+        const sourceChaptersSnapshot =
+          await getDocs(
+            collection(
+              db,
+              "books",
+              sourceDoc.id,
+              "chapters"
+            )
+          );
+
+
+        status.textContent +=
+          "\nFound " +
+          sourceChaptersSnapshot.size +
+          " chapter(s)." +
+          "\nCopying chapters…";
+
+
+        /*
+         * Copy every chapter into the permanent book.
+         */
+        for (
+          const chapterDoc
+          of sourceChaptersSnapshot.docs
+        ) {
+
+          await setDoc(
+            doc(
+              db,
+              "books",
+              "PT-000001",
+              "chapters",
+              chapterDoc.id
+            ),
+            chapterDoc.data()
+          );
+
+        }
+
+
+        /*
+         * Record where the migration came from.
+         * This makes the migration easy to verify.
+         */
+        await setDoc(
+          permanentBookRef,
+          {
+            migratedFrom: sourceDoc.id,
+            migrationCompletedAt: new Date()
+          },
+          { merge: true }
+        );
+
+
+        status.textContent =
+          "SUCCESS!\n\n" +
+          "PT-000001 is now the permanent book document.\n\n" +
+          "Book: The Overstory\n" +
+          "Author: Richard Powers\n" +
+          "Chapters copied: " +
+          sourceChaptersSnapshot.size +
+          "\n\n" +
+          "DO NOT delete the old document yet.\n" +
+          "We will verify everything first.";
+
+      } catch (error) {
+
+        console.error(error);
+
+        status.textContent =
+          "MIGRATION FAILED\n\n" +
+          error.message;
+
+        button.disabled = false;
+
+      }
+
+    });
+
+  </script>
+
+</body>
+</html>
