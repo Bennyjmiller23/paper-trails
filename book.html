@@ -10,8 +10,13 @@
     content="width=device-width, initial-scale=1"
   >
 
+  <meta
+    name="description"
+    content="Follow the journey of a traveling book with Paper Trails."
+  >
+
   <title>
-    Paper Trails — Book Journey
+    Paper Trails — Every Book Has a Journey
   </title>
 
   <link
@@ -29,6 +34,7 @@
     <a
       class="brand"
       href="index.html"
+      aria-label="Paper Trails home"
     >
 
       <span class="brand-mark">
@@ -41,6 +47,10 @@
 
     </a>
 
+    <span class="nav-tagline">
+      Every book has a journey.
+    </span>
+
   </header>
 
 
@@ -49,15 +59,41 @@
     <div
       id="content"
       class="journey-card"
+      aria-live="polite"
     >
 
-      <p>
-        Loading this Paper Trail…
-      </p>
+      <div class="loading-state">
+
+        <span class="eyebrow">
+          PAPER TRAILS
+        </span>
+
+        <h1>
+          Following the trail…
+        </h1>
+
+        <p>
+          We're finding this book's journey.
+        </p>
+
+      </div>
 
     </div>
 
   </main>
+
+
+  <footer class="footer">
+
+    <p>
+      Give a favorite book a new home.
+    </p>
+
+    <a href="index.html">
+      Start a new Paper Trail
+    </a>
+
+  </footer>
 
 
   <script
