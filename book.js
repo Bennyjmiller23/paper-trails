@@ -151,7 +151,42 @@ function renderJourney(book, chapters) {
 
     </div>
 
+<div class="book-passport">
 
+  <div class="passport-copy">
+
+    <span class="eyebrow">
+      PAPER TRAILS BOOK PASSPORT
+    </span>
+
+    <h2>
+      ${escapeHtml(book.title)}
+    </h2>
+
+    <p>
+      ${escapeHtml(book.author)}
+    </p>
+
+    <p class="passport-id">
+      ${escapeHtml(book.id)}
+    </p>
+
+    <p class="passport-origin">
+      Released from ${escapeHtml(book.location)}
+    </p>
+
+    <p class="passport-instruction">
+      Scan to follow this book's journey.
+    </p>
+
+  </div>
+
+  <div
+    id="bookQrCode"
+    class="book-qr"
+  ></div>
+
+</div>
     <div class="journey-intro">
 
       <p>
@@ -365,7 +400,17 @@ function renderJourney(book, chapters) {
 
   `;
 
+const qrTarget =
+  `${window.location.origin}/book.html?id=${encodeURIComponent(book.id)}`;
 
+new QRCode(
+  document.getElementById("bookQrCode"),
+  {
+    text: qrTarget,
+    width: 150,
+    height: 150
+  }
+);
   document
     .getElementById("addChapterButton")
     .addEventListener(
