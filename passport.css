@@ -391,5 +391,68 @@
     flex-direction: column;
     gap: 8px;
   }
+/* ========================================
+   JOURNEY TIMELINE — ALIGNMENT FIX
+   ======================================== */
 
+.timeline-entry {
+  display: grid;
+  grid-template-columns: 18px 1fr;
+  gap: 22px;
+  position: relative;
+}
+
+.timeline-marker {
+  position: relative;
+  width: 18px;
+  display: flex;
+  justify-content: center;
+}
+
+.timeline-marker .dot {
+  display: block;
+  flex: 0 0 auto;
+
+  width: 9px;
+  height: 9px;
+  min-width: 9px;
+  min-height: 9px;
+
+  margin-top: 6px;
+
+  border: 1.5px solid #2f5d50;
+  border-radius: 50%;
+
+  background: #f8f3e8;
+}
+
+.timeline-marker .timeline-line {
+  position: absolute;
+
+  top: 18px;
+  bottom: -32px;
+  left: 50%;
+
+  width: 1px;
+
+  transform: translateX(-50%);
+
+  background: #cbbfae;
+}
+
+.timeline-content {
+  min-width: 0;
+  padding-bottom: 34px;
+}
+
+.chapter-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+
+.chapter-number {
+  white-space: nowrap;
+}
 }
